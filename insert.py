@@ -1,5 +1,5 @@
 """
-Script for seeding the database according to a pre-defined distribution.
+Script for seeding the database according to raccoon stats.
 Seeds tables: 'bin', 'assign_raccoon_clan', 'item_rummage' 
 """
 
@@ -119,7 +119,11 @@ def populate_clans(conn: connection):
 
 
 def insert_rummages(conn: connection, n=500):
-    pass
+    """Inserts n rummage rows based on raccoon stats."""
+    """
+    Heavy raccoons will retrieve more edible items
+    Low skilled raccoons will retrieve less total items
+    """
 
 
 if __name__ == "__main__":
