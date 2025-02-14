@@ -4,7 +4,7 @@
 ## Setup
 **Prerequisites**
 - `psql` installed on your device
-- `python` installed on your device
+- `python3` installed on your device
 
 **Steps**
 1. Run `git clone https://github.com/Leon-JS02/TrashPandas`
