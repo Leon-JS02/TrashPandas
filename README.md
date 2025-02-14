@@ -17,8 +17,3 @@ DB_USER=<XXXXXX>
 DB_PASSWORD=<XXXXXX>
 ```
 3. Enter the repository and run `bash setup-db.sh`
-4. Create and activate a virtual environment
-    - `python3 -m venv .venv`
-    - `source .venv/bin/activate`
-5. Run `pip3 install -r requirements.txt`
-6. Run `python3 insert.py`
