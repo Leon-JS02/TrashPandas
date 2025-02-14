@@ -3,14 +3,12 @@ Script for seeding the database according to raccoon stats.
 Seeds tables: 'bin', 'assign_raccoon_clan', 'item_rummage' 
 """
 
-from os import environ as ENV
-from random import randint, choice
-
-from dotenv import load_dotenv
-
-from psycopg2 import connect
-from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
+from psycopg2.extensions import connection
+from psycopg2 import connect
+from dotenv import load_dotenv
+from os import environ as ENV
+from random import randint, choice, seed
 
 
 def get_connection() -> connection:
@@ -127,6 +125,7 @@ def insert_rummages(conn: connection, n=500):
 
 
 if __name__ == "__main__":
+    seed(1)
     load_dotenv()
     conn = get_connection()
     insert_bins(conn)
