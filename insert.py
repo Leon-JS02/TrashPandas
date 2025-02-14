@@ -1,14 +1,15 @@
 """
 Script for seeding the database according to raccoon stats.
-Seeds tables: 'bin', 'assign_raccoon_clan', 'item_rummage' 
+Seeds tables: 'bin', 'assign_raccoon_clan', 'item_rummage'
 """
+from os import environ as ENV
+from random import randint, choice, seed, choices
+from datetime import datetime, timedelta
 
 from psycopg2.extras import RealDictCursor
 from psycopg2.extensions import connection
 from psycopg2 import connect
 from dotenv import load_dotenv
-from os import environ as ENV
-from random import randint, choice, seed
 
 
 def get_connection() -> connection:
@@ -43,18 +44,26 @@ def get_raccoon_data(conn: connection) -> list[dict]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""SELECT raccoon_id, weight, rummaging_skill
                     FROM raccoon;""")
-        values = cur.fetchall()
+        raccoons = cur.fetchall()
     return [{'id': x['raccoon_id'],
              'weight': x['weight'],
-             'skill': x['rummaging_skill']} for x in values]
+             'skill': x['rummaging_skill']} for x in raccoons]
+
+
+def get_item_data(conn: connection) -> dict:
+    """Returns a dictionary mapping item IDs to their edibility ratings."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT item_id, edibility FROM item;")
+        items = cur.fetchall()
+    return {x['item_id']: x['edibility'] for x in items}
 
 
 def get_clan_ids(conn: connection) -> list[int]:
     """Returns a list of clan ids."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("SELECT clan_id FROM clan;")
-        values = cur.fetchall()
-    return [x['clan_id'] for x in values]
+        clans = cur.fetchall()
+    return [x['clan_id'] for x in clans]
 
 
 def get_rank_data(conn: connection) -> list[dict]:
@@ -64,6 +73,14 @@ def get_rank_data(conn: connection) -> list[dict]:
         ranks = cur.fetchall()
     return [{'id': x['rank_id'],
              'seniority': x['rank_seniority']} for x in ranks]
+
+
+def get_bin_data(conn: connection) -> dict:
+    """Returns a dictionary mapping bin IDs to their ease of access."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT bin_id, ease_of_access FROM bin;")
+        bins = cur.fetchall()
+    return {x['bin_id']: x['ease_of_access'] for x in bins}
 
 
 def insert_bins(conn: connection, n=10):
@@ -81,7 +98,7 @@ def insert_bins(conn: connection, n=10):
             ease_of_access = ease_of_accesses[i]
 
             cur.execute("""
-                INSERT INTO bin (city_id, type_id, 
+                INSERT INTO bin (city_id, type_id,
                         capacity, ease_of_access)
                 VALUES (%s, %s, %s, %s);
                 """, (city_id, type_id, capacity, ease_of_access))
@@ -100,7 +117,7 @@ def populate_clans(conn: connection):
     raccoons_per_clan = len(raccoon_data) // len(clan_ids)
     remaining_raccoons = len(raccoon_data) % len(clan_ids)
 
-    insert_stmt = """INSERT INTO assign_raccoon_clan 
+    insert_stmt = """INSERT INTO assign_raccoon_clan
                      (raccoon_id, clan_id, rank_id)
                      VALUES (%s, %s, %s);"""
 
@@ -116,20 +133,81 @@ def populate_clans(conn: connection):
     conn.commit()
 
 
+def get_rummage_insert_lists(raccoons: list[dict],
+                             bin_data: dict, item_data: dict, n=500) -> list[list]:
+    """Generates a list of lists containing: raccoon IDs, bin IDs, item IDs dependent on criteria:
+    - Heavier raccoons retrieve items with higher edibility.
+    - Bins with a higher ease of access are represented more
+    - Raccoons with higher skill are represented more."""
+    raccoon_ids = [
+        raccoon['id']
+        for raccoon in raccoons
+        for _ in range(raccoon['skill'])
+    ]
+
+    bin_ids = [
+        bin_id
+        for bin_id, ease_of_access in bin_data.items()
+        for _ in range(ease_of_access)
+    ]
+
+    item_ids = []
+    for raccoon in raccoons:
+        raccoon_weight = raccoon['weight']
+        weighted_items = [
+            item_id
+            for item_id, edibility in item_data.items()
+            for _ in range(edibility * (raccoon_weight // 10))
+        ]
+        item_ids.extend(choices(weighted_items, k=1))
+
+    bin_ids = choices(bin_ids, k=n)
+    item_ids = choices(item_ids, k=n)
+    raccoon_ids = choices(raccoon_ids, k=n)
+
+    return [bin_ids, item_ids, raccoon_ids]
+
+
+def generate_random_dates(n: int, interval: int = 7) -> list[datetime]:
+    """Returns a list of n random dates within the past interval of days."""
+    now = datetime.now()
+    return [
+        now - timedelta(days=randint(0, interval),
+                        hours=randint(0, 23), minutes=randint(0, 59))
+        for _ in range(n)
+    ]
+
+
 def insert_rummages(conn: connection, n=500):
-    """Inserts n rummage rows based on raccoon stats."""
-    """
-    Heavy raccoons will retrieve more edible items
-    Low skilled raccoons will retrieve less total items
-    """
+    """Generates lists of bin_ids, item_ids, and raccoon_ids for inserting rummages in bulk."""
+    raccoons = get_raccoon_data(conn)
+    bin_data = get_bin_data(conn)
+    item_data = get_item_data(conn)
+    insert_lists = get_rummage_insert_lists(raccoons, bin_data, item_data, n)
+    bin_ids = insert_lists[0]
+    item_ids = insert_lists[1]
+    raccoon_ids = insert_lists[2]
+    rummage_dates = generate_random_dates(n)
+
+    insert_stmt = """INSERT INTO item_rummage (item_id, raccoon_id, bin_id, rummaged_at)
+                     VALUES (%s, %s, %s, %s);"""
+    insert_values = [
+        (item_ids[i], raccoon_ids[i], bin_ids[i],
+         rummage_dates[i].strftime("%Y-%m-%d %H:%M:%S%z"))
+        for i in range(n)
+    ]
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.executemany(insert_stmt, insert_values)
+    conn.commit()
 
 
 if __name__ == "__main__":
     seed(1)
     load_dotenv()
-    conn = get_connection()
-    insert_bins(conn)
-    populate_clans(conn)
-    insert_rummages(conn)
-    conn.commit()
-    conn.close()
+    db_conn = get_connection()
+    insert_bins(db_conn)
+    populate_clans(db_conn)
+    insert_rummages(db_conn)
+    db_conn.commit()
+    db_conn.close()
