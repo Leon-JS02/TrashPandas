@@ -7,7 +7,7 @@
 - `python` installed on your device
 
 **Steps**
-1. Run `git clone <trash_pandas_url>`
+1. Run `git clone https://github.com/Leon-JS02/TrashPandas`
 2. Enter the repository and create a `.env` file with the following data:
 ```bash
 DB_NAME=trash_pandas
