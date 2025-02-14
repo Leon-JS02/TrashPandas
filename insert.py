@@ -132,3 +132,5 @@ if __name__ == "__main__":
     insert_bins(conn)
     populate_clans(conn)
     insert_rummages(conn)
+    conn.commit()
+    conn.close()
