@@ -1,0 +1,1 @@
+psql postgres -f schema.sql
