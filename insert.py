@@ -23,7 +23,21 @@ def get_connection() -> connection:
     )
 
 
+def insert_bins(conn: connection):
+    pass
+
+
+def insert_clans(conn: connection):
+    pass
+
+
+def insert_rummages(conn: connection):
+    pass
+
+
 if __name__ == "__main__":
     load_dotenv()
     conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    insert_bins(conn)
+    insert_clans(conn)
+    insert_rummages(conn)
