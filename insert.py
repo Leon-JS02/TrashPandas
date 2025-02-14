@@ -40,6 +40,34 @@ def get_city_ids(conn: connection) -> list[int]:
     return [x['city_id'] for x in values]
 
 
+def get_raccoon_data(conn: connection) -> list[dict]:
+    """Returns a list of raccoon objects containing relevant data for seeding."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""SELECT raccoon_id, weight, rummaging_skill
+                    FROM raccoon;""")
+        values = cur.fetchall()
+    return [{'id': x['raccoon_id'],
+             'weight': x['weight'],
+             'skill': x['rummaging_skill']} for x in values]
+
+
+def get_clan_ids(conn: connection) -> list[int]:
+    """Returns a list of clan ids."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT clan_id FROM clan;")
+        values = cur.fetchall()
+    return [x['clan_id'] for x in values]
+
+
+def get_rank_data(conn: connection) -> list[dict]:
+    """Returns a list of rank objects, containing relevant data for seeding."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT rank_id, rank_seniority FROM rank;")
+        ranks = cur.fetchall()
+    return [{'id': x['rank_id'],
+             'seniority': x['rank_seniority']} for x in ranks]
+
+
 def insert_bins(conn: connection, n=10):
     """Inserts randomly defined bins into the database."""
     bin_capacities = [randint(1, 20) * 10 for _ in range(n)]
@@ -62,11 +90,35 @@ def insert_bins(conn: connection, n=10):
         conn.commit()
 
 
-def insert_clans(conn: connection):
-    pass
+def populate_clans(conn: connection):
+    """Evenly distributes the raccoons between the clans.
+    Assigns their ranks based on their rummaging skill level."""
+
+    clan_ids = get_clan_ids(conn)
+    raccoon_data = sorted(get_raccoon_data(
+        conn), key=lambda x: x['skill'], reverse=True)
+    rank_map = {rank['seniority']: rank['id'] for rank in get_rank_data(conn)}
+
+    raccoons_per_clan = len(raccoon_data) // len(clan_ids)
+    remaining_raccoons = len(raccoon_data) % len(clan_ids)
+
+    insert_stmt = """INSERT INTO assign_raccoon_clan 
+                     (raccoon_id, clan_id, rank_id)
+                     VALUES (%s, %s, %s);"""
+
+    for i, raccoon in enumerate(raccoon_data):
+        clan_index = (i // raccoons_per_clan) + (
+            min(i // raccoons_per_clan, remaining_raccoons))
+        rank_id = rank_map.get(raccoon['skill'])
+
+        with conn.cursor() as cur:
+            cur.execute(
+                insert_stmt, (raccoon['id'], clan_ids[clan_index], rank_id))
+
+    conn.commit()
 
 
-def insert_rummages(conn: connection):
+def insert_rummages(conn: connection, n=500):
     pass
 
 
@@ -74,5 +126,5 @@ if __name__ == "__main__":
     load_dotenv()
     conn = get_connection()
     insert_bins(conn)
-    insert_clans(conn)
+    populate_clans(conn)
     insert_rummages(conn)
