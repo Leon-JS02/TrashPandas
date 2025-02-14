@@ -1,6 +1,8 @@
 # Trash Pandas DB
 - A raccoon-themed database for learning SQL queries.
 
+
+
 ## Setup
 **Prerequisites**
 - `psql` installed on your device
@@ -17,3 +19,7 @@ DB_USER=<XXXXXX>
 DB_PASSWORD=<XXXXXX>
 ```
 3. Enter the repository and run `bash setup-db.sh`
+
+## ERD
+
+![Trash Pandas ERD](erd.png)
