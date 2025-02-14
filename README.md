@@ -16,4 +16,4 @@ DB_PORT=5432
 DB_USER=<XXXXXX>
 DB_PASSWORD=<XXXXXX>
 ```
-3. Enter the repository and run `bash setup-db.sh`
+3. Run `bash setup-db.sh`
