@@ -5,6 +5,7 @@ Seeds tables: 'bin', 'assign_raccoon_clan', 'item_rummage'
 from os import environ as ENV
 from random import randint, choice, seed, choices
 from datetime import datetime, timedelta
+from argparse import ArgumentParser
 
 from psycopg2.extras import RealDictCursor
 from psycopg2.extensions import connection
@@ -203,11 +204,17 @@ def insert_rummages(conn: connection, n=500):
 
 
 if __name__ == "__main__":
+    parser = ArgumentParser(
+        description="Insert rummaged items into the database.")
+    parser.add_argument("-n", "--num", type=int, default=2000,
+                        help="Number of rummaged items to insert (default: 500)")
+    args = parser.parse_args()
+
     seed(1)
     load_dotenv()
     db_conn = get_connection()
     insert_bins(db_conn)
     populate_clans(db_conn)
-    insert_rummages(db_conn)
+    insert_rummages(db_conn, args.num)
     db_conn.commit()
     db_conn.close()
