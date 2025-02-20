@@ -1,4 +1,4 @@
-# Trash Pandas DB
+# 🦝 Trash Pandas DB 🦝
 - A raccoon-themed database for learning SQL queries.
 
 
