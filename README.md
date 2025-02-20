@@ -19,7 +19,9 @@ DB_PORT=5432
 DB_USER=<XXXXXX>
 DB_PASSWORD=<XXXXXX>
 ```
-3. Run `bash setup-db.sh`
+3. Run `bash setup-db.sh [n: int, default = 500]`
+
+    e.g. `bash setup-db.sh 10000`
 
 ## ERD
 
