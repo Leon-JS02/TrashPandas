@@ -206,7 +206,7 @@ def insert_rummages(conn: connection, n=500):
 if __name__ == "__main__":
     parser = ArgumentParser(
         description="Insert rummaged items into the database.")
-    parser.add_argument("-n", "--num", type=int, default=2000,
+    parser.add_argument("-n", "--num", type=int, default=500,
                         help="Number of rummaged items to insert (default: 500)")
     args = parser.parse_args()
 
