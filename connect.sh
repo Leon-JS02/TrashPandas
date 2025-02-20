@@ -1,0 +1,1 @@
+psql -h $DB_HOST -U $DB_USER trash_pandas
